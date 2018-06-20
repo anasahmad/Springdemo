@@ -1,33 +1,70 @@
 package com.example.demo;
 
 import java.util.ArrayList;
+import org.bson.types.ObjectId;
+import com.mongodb.*;
 
 public class Library{
 
-	ArrayList<Book> Books = new ArrayList<Book>();
-	ArrayList<String> BookNames = new ArrayList<String>(); //names of the books
+	private MongoClient mongo;
+	private DB db;
+	private DBCollection dbcollection;
+	private final String DBNAME = "demodb";
+	private final String COLLECTIONNAME = "librarycollection";
+	
+
+	public DB getDB()
+	{
+		return db;
+	}
+	
+	public DBCollection getDBCollection()
+	{
+		return dbcollection;
+	}
 
 	public Library() {
+		try
+		{
+			mongo = new MongoClient();
+			db = mongo.getDB(DBNAME);
+			dbcollection = db.getCollection(COLLECTIONNAME);
+		}
 		
+		catch(Exception e)
+		{
+			System.out.println(e.getMessage());
+		}
 	}
-	
 	
 	public ArrayList<String> getBooks()
-	{
-		return BookNames;
+	{		
+		ArrayList<String> temp = new ArrayList<String>();		
+		
+		BasicDBObject all = new BasicDBObject();
+		BasicDBObject fields = new BasicDBObject();
+		
+		fields.put("name", 1);
+		
+		DBCursor cursor = dbcollection.find(all, fields);
+		
+		while (cursor.hasNext()) {
+			temp.add((String)cursor.next().get("name"));
+		}
+
+		return temp;
 	}
 
-	
 	public ArrayList<String> getBooks(String author)
 	{
-		ArrayList<String> temp = new ArrayList<String>();
-
-		for(Book Book: Books)
-		{
-			if(Book.getAuthor().equals(author))
-			{
-				temp.add(Book.getName());
-			}
+		ArrayList<String> temp = new ArrayList<String>();		
+		
+		BasicDBObject whereQuery = new BasicDBObject();
+		whereQuery.put("author", author);
+		
+		DBCursor cursor = dbcollection.find(whereQuery);
+		while(cursor.hasNext()) {
+			temp.add((String)cursor.next().get("name"));
 		}
 
 		return temp;
@@ -36,32 +73,34 @@ public class Library{
 	public ArrayList<String> getBooksPartial(String partialTitle)
 	{
 		ArrayList<String> ret = new ArrayList<String>();
-        int p = partialTitle.length();
-        
-		for (Book Book: Books)
-		{
-            int n = Book.getName().length();
-                        
-            for(int i = 0; i < n - p + 1; i++)
-            {
-            	if(partialTitle.toLowerCase().charAt(0) == Book.getName().toLowerCase().charAt(i))
-            	{
-                    String temp = Book.getName().substring(i, i + p).toLowerCase();
-                    if(temp.equals(partialTitle.toLowerCase()))
-                    {
-                    	ret.add(Book.getName());
-                    	continue;
-                    }
-            	}
-            }
+		
+		BasicDBObject whereQuery = new BasicDBObject();
+		whereQuery.put("name",
+		        new BasicDBObject("$regex", partialTitle)
+		        .append("$options", "i"));
+		
+		DBCursor cursor = dbcollection.find(whereQuery);
+		while(cursor.hasNext()) {
+			ret.add((String)cursor.next().get("name"));
 		}
+
 		return ret;
 	}
 	
-	public void addBook(String name, String Author)
+	public void addBook(String name, String author)
 	{
-		Books.add(new Book(Books.size(), name, Author));
-		BookNames.add(name);
+		addObjectToCollection(name, author);
+	}
+	
+	public void addObjectToCollection(String name, String author)
+	{		
+		DBObject dbo = new BasicDBObject("_id", ObjectId.get()).append("name", name).append("author", author);
+		dbcollection.insert(dbo);
+	}
+	
+	public void closedb()
+	{
+		mongo.close();
 	}
 
 

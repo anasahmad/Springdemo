@@ -8,14 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class BookController {
 
-    private Library library;
-
-    public void initialize() {
-    	
-    	library = new Library();
-    	library.addBook("Harry Potter", "J K Rowling");
-    	library.addBook("Lord of the Rings", "J. R. R. Tolkien");
-    }
+    private Library library = new Library();
     
     @RequestMapping({"/","/*","/*/*"})
     public String general()
@@ -28,9 +21,7 @@ public class BookController {
     
     @RequestMapping("/book")
     public ArrayList<String> book(@RequestParam(value="author", defaultValue="none") String author) {
-    	
-    	initialize();
-    	
+    	    	
     	if(author.equals("none"))
     	{
         	return library.getBooks();
@@ -46,11 +37,11 @@ public class BookController {
     		return library.getBooks(author);
     	}
     	
+    	
     }
     
     @RequestMapping("/bookpartial")
     public ArrayList<String> bookpartial(@RequestParam(value="name", defaultValue="none") String partial){
-    	initialize();
     	
     	return library.getBooksPartial(partial);
     }
@@ -58,11 +49,11 @@ public class BookController {
     @RequestMapping("/add")
     public ArrayList<String> add(@RequestParam(value="name",defaultValue="") String name, @RequestParam(value="author",defaultValue="") String author)
     {
-    	initialize();
     	
     	if(!name.equals("") && !author.equals(""))
     		library.addBook(name, author);
     	
     	return library.getBooks();
     }
+
 }
